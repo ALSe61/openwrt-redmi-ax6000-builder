@@ -1,0 +1,56 @@
+name: Build OpenWrt for Redmi AX6000 (ImageBuilder)
+
+on:
+  workflow_dispatch:
+    inputs:
+      openwrt_version:
+        description: 'OpenWrt version (e.g. 24.10.0, 25.12.5, SNAPSHOT)'
+        required: true
+        default: '25.12.5'
+      extra_packages:
+        description: 'Extra packages (space separated)'
+        required: false
+        default: ''
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download and use OpenWrt ImageBuilder
+        run: |
+          VERSION="${{ github.event.inputs.openwrt_version }}"
+          if [ "$VERSION" = "SNAPSHOT" ]; then
+            IB_URL="https://downloads.openwrt.org/snapshots/targets/mediatek/filogic/openwrt-imagebuilder-mediatek-filogic.Linux-x86_64.tar.xz"
+            TAR_CMD="tar -xJf"
+          else
+            IB_URL="https://downloads.openwrt.org/releases/$VERSION/targets/mediatek/filogic/openwrt-imagebuilder-$VERSION-mediatek-filogic.Linux-x86_64.tar.zst"
+            TAR_CMD="tar --use-compress-program=unzstd -xf"
+          fi
+          wget "$IB_URL" -O imagebuilder.tar
+          $TAR_CMD imagebuilder.tar
+          cd openwrt-imagebuilder-*
+          cp -r $GITHUB_WORKSPACE/files ./files 2>/dev/null || true
+
+          # Stock layout
+          make image PROFILE="xiaomi_redmi-router-ax6000-stock" \
+            PACKAGES="${{ github.event.inputs.extra_packages }} apk-mbedtls base-files ca-bundle dnsmasq-full dropbear firewall4 fitblk fstools kmod-crypto-hw-safexcel kmod-gpio-button-hotplug kmod-leds-gpio kmod-nft-offload libc libgcc libustream-mbedtls logd mtd netifd nftables odhcp6c odhcpd-ipv6only ppp ppp-mod-pppoe procd-ujail uboot-envtools uci uclient-fetch urandom-seed urngd wpad-basic-mbedtls kmod-leds-ws2812b kmod-mt7915e kmod-mt7986-firmware mt7986-wo-firmware luci luci-app-attendedsysupgrade luci-app-filemanager luci-app-firewall luci-app-package-manager luci-app-ttyd luci-base luci-i18n-base-ru luci-i18n-filemanager-ru luci-i18n-firewall-ru luci-i18n-package-manager-ru luci-i18n-ttyd-ru luci-light luci-mod-admin-full luci-mod-network luci-mod-status luci-mod-system nano wget-ssl kmod-inet-diag kmod-netlink-diag kmod-tun curl ucode ucode-mod-fs kmod-nft-tproxy coreutils-base64 coreutils-sort bind-dig nftables kmod-nft-nat kmod-nft-offload ethtool kmod-mtd-rw" \
+            FILES="files"
+
+          # Ubootmod layout
+          make image PROFILE="xiaomi_redmi-router-ax6000-ubootmod" \
+            PACKAGES="${{ github.event.inputs.extra_packages }} apk-mbedtls base-files ca-bundle dnsmasq-full dropbear firewall4 fitblk fstools kmod-crypto-hw-safexcel kmod-gpio-button-hotplug kmod-leds-gpio kmod-nft-offload libc libgcc libustream-mbedtls logd mtd netifd nftables odhcp6c odhcpd-ipv6only ppp ppp-mod-pppoe procd-ujail uboot-envtools uci uclient-fetch urandom-seed urngd wpad-basic-mbedtls kmod-leds-ws2812b kmod-mt7915e kmod-mt7986-firmware mt7986-wo-firmware luci luci-app-attendedsysupgrade luci-app-filemanager luci-app-firewall luci-app-package-manager luci-app-ttyd luci-base luci-i18n-base-ru luci-i18n-filemanager-ru luci-i18n-firewall-ru luci-i18n-package-manager-ru luci-i18n-ttyd-ru luci-light luci-mod-admin-full luci-mod-network luci-mod-status luci-mod-system nano wget-ssl kmod-inet-diag kmod-netlink-diag kmod-tun curl ucode ucode-mod-fs kmod-nft-tproxy coreutils-base64 coreutils-sort bind-dig nftables kmod-nft-nat kmod-nft-offload ethtool kmod-mtd-rw" \
+            FILES="files"
+
+          # Copy important files
+          mkdir -p $GITHUB_WORKSPACE/artifacts
+          cp -v bin/targets/mediatek/filogic/* $GITHUB_WORKSPACE/artifacts/ 2>/dev/null || true
+        shell: bash
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: openwrt-redmi-ax6000-${{ github.event.inputs.openwrt_version }}
+          path: artifacts/
+          retention-days: 30
