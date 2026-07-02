@@ -1,0 +1,62 @@
+#!/bin/sh
+
+[ "$(uci -q get system.@system[0].hostname)" = "ax6k" ] && exit 0
+
+uci -q batch << EOI
+set system.@system[0].hostname='ax6k'
+set system.@system[0].zonename='Asia/Yekaterinburg'
+set system.@system[0].timezone='<+05>-5'
+set network.lan.ipaddr='192.168.2.1'
+set luci.main.lang='ru'
+# SSH
+delete dropbear.main.enable
+delete dropbear.main.RootPasswordAuth
+set dropbear.main.Interface='lan'
+set dropbear.main.Port='22'
+## NTP
+delete system.ntp.server
+add_list system.ntp.server='91.206.16.3'
+add_list dhcp.lan.dhcp_option='option:ntp-server,192.168.2.1'
+set system.ntp.enable_server='1'
+set system.ntp.interface='lan'
+set system.ntp.use_dhcp='0'
+## WiFi 5
+delete wireless.@wifi-device[1].disabled
+set wireless.@wifi-device[1].band='5g'
+set wireless.@wifi-device[1].log_level='4'
+set wireless.@wifi-iface[1].ssid='OpenWrt'
+set wireless.@wifi-iface[1].key='1234567890'
+set wireless.@wifi-iface[1].encryption='psk2'
+set wireless.@wifi-iface[1].country='RU'
+set wireless.@wifi-iface[1].channel='52'
+set wireless.@wifi-iface[1].txpower='20'
+set wireless.@wifi-iface[1].network='lan'
+set wireless.@wifi-iface[1].disassoc_low_ack='0'
+## WiFi 2
+delete wireless.@wifi-device[0].disabled
+set wireless.@wifi-device[0].band='2g'
+set wireless.@wifi-device[0].log_level='4'
+set wireless.@wifi-iface[0].ssid='MiR3P'
+set wireless.@wifi-iface[0].key='1234567890'
+set wireless.@wifi-iface[0].encryption='psk2'
+set wireless.@wifi-iface[0].htmode='HE20'
+set wireless.@wifi-iface[0].country='RU'
+set wireless.@wifi-iface[0].channel='6'
+set wireless.@wifi-iface[0].network='lan'
+set wireless.@wifi-iface[0].disassoc_low_ack='0'
+## IPv6 disable
+set network.lan.ipv6='0'
+set network.wan.ipv6='0'
+set dhcp.lan.dhcpv6='disabled'
+delete dhcp.lan.dhcpv6
+delete dhcp.lan.ra
+set network.lan.delegate='0'
+delete network.globals.ula_prefix
+EOI
+uci commit
+
+# odhcp disable
+/etc/init.d/odhcpd disable
+/etc/init.d/odhcpd stop
+/etc/init.d/network restart
+exit 0
