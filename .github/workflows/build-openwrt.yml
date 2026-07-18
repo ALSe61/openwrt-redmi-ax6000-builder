@@ -51,5 +51,5 @@ jobs:
         with:
           name: openwrt-redmi-ax6000-${{ github.event.inputs.openwrt_version }}
           path: artifacts/
-          skip-decompress: true
+          archive: false
           retention-days: 30
