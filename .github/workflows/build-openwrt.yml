@@ -43,7 +43,7 @@ jobs:
 
           # Copy important files
           mkdir -p $GITHUB_WORKSPACE/artifacts
-          cp -v bin/targets/mediatek/filogic/*.{bin,fip,itb} $GITHUB_WORKSPACE/artifacts/ 2>/dev/null || true
+          cp -v bin/targets/mediatek/filogic/*.{bin,fip,itb,ubi} $GITHUB_WORKSPACE/artifacts/ 2>/dev/null || true
         shell: bash
 
       - name: Upload firmware
@@ -51,4 +51,5 @@ jobs:
         with:
           name: openwrt-redmi-ax6000-${{ github.event.inputs.openwrt_version }}
           path: artifacts/
+          skip-decompress: true
           retention-days: 30
