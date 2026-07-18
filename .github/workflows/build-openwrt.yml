@@ -11,7 +11,10 @@ on:
         description: 'Extra packages (space separated)'
         required: false
         default: 'apk-mbedtls base-files ca-bundle dnsmasq-full dropbear firewall4 fitblk fstools kmod-crypto-hw-safexcel kmod-gpio-button-hotplug kmod-leds-gpio kmod-nft-offload libc libgcc libustream-mbedtls logd mtd netifd nftables odhcp6c odhcpd-ipv6only ppp ppp-mod-pppoe procd-ujail uboot-envtools uci uclient-fetch urandom-seed urngd wpad-basic-mbedtls kmod-leds-ws2812b kmod-mt7915e kmod-mt7986-firmware mt7986-wo-firmware luci luci-app-attendedsysupgrade luci-app-filemanager luci-app-firewall luci-app-package-manager luci-app-ttyd luci-base luci-i18n-base-ru luci-i18n-filemanager-ru luci-i18n-firewall-ru luci-i18n-package-manager-ru luci-i18n-ttyd-ru luci-light luci-mod-admin-full luci-mod-network luci-mod-status luci-mod-system nano wget-ssl kmod-inet-diag kmod-netlink-diag kmod-tun curl ucode ucode-mod-fs kmod-nft-tproxy coreutils-base64 coreutils-sort bind-dig nftables kmod-nft-nat kmod-nft-offload ethtool kmod-mtd-rw'
-
+      layout_profile:
+        description: 'stock/ubootmod'
+        required: true
+        default: 'ubootmod'
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -33,19 +36,14 @@ jobs:
           cd openwrt-imagebuilder-*
           cp -r $GITHUB_WORKSPACE/files ./files 2>/dev/null || true
 
-          # Stock layout
-          make image PROFILE="xiaomi_redmi-router-ax6000-stock" \
-            PACKAGES="${{ github.event.inputs.extra_packages }}" \
-            FILES="files"
-
-          # Ubootmod layout
-          make image PROFILE="xiaomi_redmi-router-ax6000-ubootmod" \
+          BOOTLOADER="${{ github.event.inputs.layout_profile }}"
+          make image PROFILE="xiaomi_redmi-router-ax6000-$BOOTLOADER" \
             PACKAGES="${{ github.event.inputs.extra_packages }}" \
             FILES="files"
 
           # Copy important files
           mkdir -p $GITHUB_WORKSPACE/artifacts
-          cp -v bin/targets/mediatek/filogic/*.{bin,fip,ubi,itb} $GITHUB_WORKSPACE/artifacts/ 2>/dev/null || true
+          cp -v bin/targets/mediatek/filogic/*.{bin,fip,itb} $GITHUB_WORKSPACE/artifacts/ 2>/dev/null || true
         shell: bash
 
       - name: Upload firmware
